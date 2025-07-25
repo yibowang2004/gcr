@@ -9,5 +9,5 @@ You can install the development version of the gcr from
 [GitHub](https://github.com/) by:
 
 ``` r
-# devtools::install_github("yibowang2004/gcr")
+devtools::install_github("yibowang2004/gcr")
 ```
