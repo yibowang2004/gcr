@@ -6,7 +6,7 @@ clustered and longitudinal data by jointly estimating the mean and covariate-dep
 ## Installation
 
 You can install the development version of the gcr from
-[GitHub](https://github.com/) by:
+[GitHub](https://github.com/yibowang2004/gcr) by:
 
 ``` r
 devtools::install_github("yibowang2004/gcr")
