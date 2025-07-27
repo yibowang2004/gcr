@@ -139,11 +139,11 @@ gcr <- function(Y, X, W,
 
   sigma_alpha <- sqrt(diag(solve(H_2)))
   std_alpha <- alpha_1 / sigma_alpha
-  pvalue_alpha <- ifelse(std_alpha > 0, 1 - pnorm(std_alpha), pnorm(std_alpha))
+  pvalue_alpha <- ifelse(std_alpha > 0, 2 - 2 * pnorm(std_alpha), 2 * pnorm(std_alpha))
 
   sigma_beta <- sqrt(diag(solve(H_1)))
   std_beta <- beta_1 / sigma_beta
-  pvalue_beta <- ifelse(std_beta > 0, 1 - pnorm(std_beta), pnorm(std_beta))
+  pvalue_beta <- ifelse(std_beta > 0, 2 - 2 * pnorm(std_beta), 2 * pnorm(std_beta))
 
   return(list(alpha = alpha_1, pvalue_alpha = pvalue_alpha,
               beta = beta_1, pvalue_beta = pvalue_beta,
