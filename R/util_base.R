@@ -1,23 +1,3 @@
-# log_mat <- function(X) {
-#   eigen_X <- eigen(X, symmetric = TRUE)
-#   return(eigen_X$vectors %*% diag(log(eigen_X$values), nrow = dim(X)[1]) %*% t(eigen_X$vectors))
-# }
-#
-# exp_mat <- function(X) {
-#   eigen_X <- eigen(X, symmetric = TRUE)
-#   return(eigen_X$vectors %*% diag(exp(eigen_X$values), nrow = dim(X)[1]) %*% t(eigen_X$vectors))
-# }
-#
-# exp_solve_mat <- function(X) {
-#   eigen_X <- eigen(X, symmetric = TRUE)
-#   return(eigen_X$vectors %*% diag(1 / exp(eigen_X$values), nrow = dim(X)[1]) %*% t(eigen_X$vectors))
-# }
-#
-# exp_sqrt_solve_mat <- function(X) {
-#   eigen_X <- eigen(X, symmetric = TRUE)
-#   return(eigen_X$vectors %*% diag(1 / sqrt(exp(eigen_X$values)), nrow = dim(X)[1]) %*% t(eigen_X$vectors))
-# }
-
 vecl <- function(X) {
   return(X[lower.tri(X, diag = FALSE)])
 }
