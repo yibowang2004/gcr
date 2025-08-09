@@ -233,7 +233,7 @@ calculate_alpha_S <- function(alpha, Y, X, W, beta, phi, family) {
   return(S_2)
 }
 
-calculate_hessian <- function(Y, X, W, alpha, beta, phi, eps = 1e-14) {
+calculate_hessian <- function(Y, X, W, alpha, beta, phi, family, eps = 1e-14) {
   n <- length(Y)
   p <- length(beta)
   d <- length(alpha)
@@ -246,7 +246,7 @@ calculate_hessian <- function(Y, X, W, alpha, beta, phi, eps = 1e-14) {
     perturbed_points[, j + d] <- alpha - eps * I_d[, j]
   }
 
-  grad_func <- function(theta) calculate_alpha_S(theta, Y = Y, X = X, W = W, beta = beta, phi = phi)
+  grad_func <- function(theta) calculate_alpha_S(theta, Y = Y, X = X, W = W, beta = beta, phi = phi, family = family)
   all_grads <- apply(perturbed_points, 2, grad_func)
 
   grads_pos <- all_grads[, 1:d]
