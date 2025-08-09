@@ -159,4 +159,3 @@ gcr <- function(Y, X, W,
               phi = phi_1,
               H_1 = H_1, H_2 = H_2, Hessian = Hessian))
 }
-
