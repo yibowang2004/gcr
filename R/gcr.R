@@ -43,6 +43,7 @@
 #'   \item{phi}{Estimated phi}
 #'   \item{H_1}{Estimated H_1}
 #'   \item{H_2}{Estimated H_2}
+#'   \item{Hessian}{Estimated Hessian matrix}
 #' }
 #'
 #' @export
@@ -134,12 +135,20 @@ gcr <- function(Y, X, W,
     }
   }
 
-  H_1 <- calculate_beta(Y, X, W, alpha_1, beta_0, phi_1, family)$H
-  H_2 <- calculate_alpha(Y, X, W, alpha_1, beta_0, phi_1, family)$H
-
-  sigma_alpha <- sqrt(diag(solve(H_2)))
-  std_alpha <- alpha_1 / sigma_alpha
-  pvalue_alpha <- ifelse(std_alpha > 0, 2 - 2 * pnorm(std_alpha), 2 * pnorm(std_alpha))
+  H_1 <- calculate_beta(Y, X, W, alpha_1, beta_1, phi_1)$H
+  if(!flag) {
+    H_2 <- calculate_alpha(Y, X, W, alpha_1, beta_1, phi_1)$H
+    Hessian <- calculate_hessian(Y, X, W, alpha_1, beta_1, phi_1, 1e-14)
+    Hessian_solve <- solve(Hessian)
+    sigma_alpha <- sqrt(diag(Hessian_solve %*% H2_est %*% Hessian_solve))
+    std_alpha <- alpha_1 / sigma_alpha
+    pvalue_alpha <- ifelse(std_alpha > 0, 2 - 2 * pnorm(std_alpha), 2 * pnorm(std_alpha))
+  }
+  else {
+    H_2 <- NULL
+    Hessian <- NULL
+    pvalue_alpha <- NULL
+  }
 
   sigma_beta <- sqrt(diag(solve(H_1)))
   std_beta <- beta_1 / sigma_beta
@@ -148,5 +157,5 @@ gcr <- function(Y, X, W,
   return(list(alpha = alpha_1, pvalue_alpha = pvalue_alpha,
               beta = beta_1, pvalue_beta = pvalue_beta,
               phi = phi_1,
-              H_1 = H_1, H_2 = H_2))
+              H_1 = H_1, H_2 = H_2, Hessian = Hessian))
 }

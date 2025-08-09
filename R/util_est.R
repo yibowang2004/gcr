@@ -175,6 +175,90 @@ calculate_alpha <- function(Y, X, W, alpha, beta, phi, family) {
   return(list(S = S_2, H = H_2))
 }
 
+
+calculate_alpha_S <- function(alpha, Y, X, W, beta, phi, family) {
+
+  if(family == "Gaussian") {
+    family_type <- gaussian_family()
+  }
+  else if(family == "Poisson") {
+    family_type <- poisson_family()
+  }
+  else if(family == "Binomial") {
+    family_type <- binomial_family()
+  }
+
+  a1_fun <- family_type$a1_fun
+  a2_fun <- family_type$a2_fun
+  a4_fun <- family_type$a4_fun
+  h_fun <- family_type$h_fun
+
+  n <- length(Y)
+  p <- length(beta)
+  d <- length(alpha)
+
+  S_2 <- numeric(d)
+  H_2 <- matrix(0, d, d)
+  for(i in 1:n) {
+    m <- dim(X[[i]])[1]
+    if(m == 1) next
+    E_l <- El_global[[m]]
+    E_u <- Eu_global[[m]]
+    E_d <- Ed_global[[m]]
+
+    theta <- X[[i]] %*% beta
+    mu <- a1_fun(h_fun((theta)))
+    sigma <- phi * a2_fun(h_fun((theta)))
+    A <- diag(as.vector(sigma), nrow = m)
+    A_sqrt_solve <- diag(1 / sqrt(as.vector(sigma)), nrow = m)
+
+    G <- recover_GZT(W[[i]] %*% alpha)
+    eigen_G <- eigen(G, symmetric = TRUE)
+    Q <- eigen_G$vectors
+    lambda <- eigen_G$values
+    Mid <- generate_Mid(lambda)
+    Q_tensor <- kronecker(Q, Q)
+    B <- Q_tensor %*% Mid %*% t(Q_tensor)
+    # calculate partial
+    partial <- E_l %*% (diag(m ^ 2) - B %*% t(E_d) %*% solve(E_d %*% B %*% t(E_d)) %*% E_d) %*% B %*% t(E_l + E_u)
+
+    R <- exp_mat(G)
+    R_solve <- exp_solve_mat(G)
+    R_sqrt_solve <- exp_sqrt_solve_mat(G)
+
+    R_hat <- A_sqrt_solve %*% (Y[[i]] - mu) %*% t(Y[[i]] - mu) %*% A_sqrt_solve
+    eta <- vecl(R_solve %*% R_hat %*% R_solve - R_solve)
+    S_2 <- S_2 + t(W[[i]]) %*% t(partial) %*% eta
+  }
+  return(S_2)
+}
+
+calculate_hessian <- function(Y, X, W, alpha, beta, phi, eps = 1e-14) {
+  n <- length(Y)
+  p <- length(beta)
+  d <- length(alpha)
+
+  I_d <- diag(d)
+
+  perturbed_points <- matrix(0, nrow = d, ncol = 2 * d)
+  for (j in 1:d) {
+    perturbed_points[, j] <- alpha + eps * I_d[, j]
+    perturbed_points[, j + d] <- alpha - eps * I_d[, j]
+  }
+
+  grad_func <- function(theta) calculate_alpha_S(theta, Y = Y, X = X, W = W, beta = beta, phi = phi)
+  all_grads <- apply(perturbed_points, 2, grad_func)
+
+  grads_pos <- all_grads[, 1:d]
+  grads_neg <- all_grads[, (d+1):(2*d)]
+
+  H <- (grads_pos - grads_neg) / (2 * eps)
+
+  H_sym <- 0.5 * (H + t(H))
+
+  return(H_sym)
+}
+
 est_phi <- function(Y, X, beta, family) {
   if(family == "Gaussian") {
     family_type <- gaussian_family()
