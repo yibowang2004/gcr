@@ -136,7 +136,7 @@ gcr <- function(Y, X, W,
   }
 
   H_1 <- calculate_beta(Y, X, W, alpha_1, beta_1, phi_1, family)$H
-  if(!flag) {
+  if(!independent) {
     H_2 <- calculate_alpha(Y, X, W, alpha_1, beta_1, phi_1, family)$H
     Hessian <- calculate_hessian(Y, X, W, alpha_1, beta_1, phi_1, family, 1e-14)
     Hessian_solve <- solve(Hessian)
@@ -159,3 +159,4 @@ gcr <- function(Y, X, W,
               phi = phi_1,
               H_1 = H_1, H_2 = H_2, Hessian = Hessian))
 }
+
