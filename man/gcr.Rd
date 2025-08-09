@@ -73,6 +73,7 @@ A list containing the following components:
   \item{phi}{Estimated phi}
   \item{H_1}{Estimated H_1}
   \item{H_2}{Estimated H_2}
+  \item{Hessian}{Estimated Hessian matrix}
 }
 }
 \description{
