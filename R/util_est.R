@@ -202,9 +202,9 @@ calculate_alpha_S <- function(alpha, Y, X, W, beta, phi, family) {
   for(i in 1:n) {
     m <- dim(X[[i]])[1]
     if(m == 1) next
-    E_l <- El_global[[m]]
-    E_u <- Eu_global[[m]]
-    E_d <- Ed_global[[m]]
+    E_l <- generate_El(m)
+    E_u <- generate_Eu(m)
+    E_d <- generate_Ed(m)
 
     theta <- X[[i]] %*% beta
     mu <- a1_fun(h_fun((theta)))
