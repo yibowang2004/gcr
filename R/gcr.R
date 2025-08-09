@@ -140,7 +140,7 @@ gcr <- function(Y, X, W,
     H_2 <- calculate_alpha(Y, X, W, alpha_1, beta_1, phi_1, family)$H
     Hessian <- calculate_hessian(Y, X, W, alpha_1, beta_1, phi_1, family, 1e-14)
     Hessian_solve <- solve(Hessian)
-    sigma_alpha <- sqrt(diag(Hessian_solve %*% H2 %*% Hessian_solve))
+    sigma_alpha <- sqrt(diag(Hessian_solve %*% H_2 %*% Hessian_solve))
     std_alpha <- alpha_1 / sigma_alpha
     pvalue_alpha <- ifelse(std_alpha > 0, 2 - 2 * pnorm(std_alpha), 2 * pnorm(std_alpha))
   }
