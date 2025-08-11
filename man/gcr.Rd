@@ -13,11 +13,12 @@ gcr(
   phi_init,
   phi.include = TRUE,
   family,
+  accelerate = FALSE,
   lambda = 1,
   max_iter_1 = 100,
   max_iter_2 = 100,
   tol = 1e-06,
-  eps = .Machine$double.eps^0.75,
+  eps = .Machine$double.eps^0.5,
   criteria = "max",
   independent = FALSE,
   verbose = FALSE
@@ -51,6 +52,8 @@ of responses for a cluster. For cluster \eqn{i}, \code{Y[[i]]} should be a vecto
 \item{phi.include}{Logical indicating whether phi is known}
 
 \item{family}{Response distribution family: "Gaussian", "Poisson", or "Binomial"}
+
+\item{accelerate}{Logical indicating whether use the accelerated algorithm}
 
 \item{lambda}{Step size}
 

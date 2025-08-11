@@ -26,6 +26,7 @@
 #' @param phi_init Initial value for phi
 #' @param phi.include Logical indicating whether phi is known
 #' @param family Response distribution family: "Gaussian", "Poisson", or "Binomial"
+#' @param accelerate Logical indicating whether use the accelerated algorithm
 #' @param lambda Step size
 #' @param max_iter_1 Maximum iterations for outer optimization loop
 #' @param max_iter_2 Maximum iterations for inner optimization loop
@@ -52,9 +53,9 @@
 gcr <- function(Y, X, W,
                 alpha_init, beta_init, phi_init,
                 phi.include = TRUE, family,
-                lambda = 1,
-                max_iter_1 = 100, max_iter_2 = 100,
-                tol = 1e-6, eps = .Machine$double.eps ^ 0.75,
+                accelerate = FALSE,
+                lambda = 1, max_iter_1 = 100, max_iter_2 = 100,
+                tol = 1e-6, eps = .Machine$double.eps ^ 0.5,
                 criteria = "max", independent = FALSE, verbose = FALSE) {
 
   n <- length(Y)
@@ -100,7 +101,7 @@ gcr <- function(Y, X, W,
 
       if(step_a != 0) alpha_10 <- alpha_11
 
-      res_alpha <- calculate_alpha(Y, X, W, alpha_10, beta_0, phi_1, family)
+      res_alpha <- calculate_alpha(Y, X, W, alpha_10, beta_0, phi_1, accelerate, family)
       S_2 <- res_alpha$S
       H_2 <- res_alpha$H
       alpha_11 <- alpha_10 + lambda * solve(H_2) %*% S_2

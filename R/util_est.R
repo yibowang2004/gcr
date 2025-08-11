@@ -103,7 +103,7 @@ calculate_beta <- function(Y, X, W, alpha, beta, phi, family) {
   return(list(S = S_1, H = H_1))
 }
 
-calculate_alpha <- function(Y, X, W, alpha, beta, phi, family) {
+calculate_alpha <- function(Y, X, W, alpha, beta, phi, accelerate, family) {
 
   if(family == "Gaussian") {
     family_type <- gaussian_family()
@@ -160,14 +160,19 @@ calculate_alpha <- function(Y, X, W, alpha, beta, phi, family) {
     a_d4 <- a4_fun(theta)
     a_d2 <- a2_fun(theta)
 
-    if(family == "Gaussian") {
-      J <- generate_J(R_solve)
+    if(accelerate) {
+      if(family == "Gaussian") {
+        J <- generate_J(R_solve)
+      }
+      else if(family == "Poisson") {
+        J <- generate_J_extra(R_solve, R_sqrt_solve, a_d4, a_d2, phi)
+      }
+      else if(family == "Binomial") {
+        J <- generate_J_extra(R_solve, R_sqrt_solve, a_d4, a_d2, phi)
+      }
     }
-    else if(family == "Poisson") {
-      J <- generate_J_extra(R_solve, R_sqrt_solve, a_d4, a_d2, phi)
-    }
-    else if(family == "Binomial") {
-      J <- generate_J_extra(R_solve, R_sqrt_solve, a_d4, a_d2, phi)
+    else {
+      J <- eta %*% t(eta)
     }
 
     H_2 <- H_2 + t(W[[i]]) %*% t(partial) %*% J %*% partial %*% W[[i]]
@@ -293,7 +298,7 @@ calculate_alpha_H <- function(Y, X, W, alpha, beta, phi, family) {
   return(H_2)
 }
 
-calculate_hessian <- function(Y, X, W, alpha, beta, phi, family, eps = .Machine$double.eps ^ 0.75) {
+calculate_hessian <- function(Y, X, W, alpha, beta, phi, family, eps = .Machine$double.eps ^ 0.5) {
   n <- length(Y)
   p <- length(beta)
   d <- length(alpha)
