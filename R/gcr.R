@@ -115,6 +115,9 @@ gcr <- function(Y, X, W,
       else if(criteria == "avg" && mean(abs(alpha_11 - alpha_10)) <= tol) {
         break
       }
+      else if(criteria == "max" && max(abs(alpha_11 - alpha_10)) <= tol) {
+        break
+      }
     }
     alpha_1 <- alpha_11
 
