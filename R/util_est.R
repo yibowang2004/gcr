@@ -286,17 +286,14 @@ calculate_alpha_H <- function(Y, X, W, alpha, beta, phi, family) {
     R_hat <- A_sqrt_solve %*% (Y[[i]] - mu) %*% t(Y[[i]] - mu) %*% A_sqrt_solve
     eta <- vecl(R_solve %*% R_hat %*% R_solve - R_solve)
 
-    a_d4 <- a4_fun(theta)
-    a_d2 <- a2_fun(theta)
-
-    J <- outer(eta, eta)
+    J <- eta %*% t(eta)
 
     H_2 <- H_2 + t(W[[i]]) %*% t(partial) %*% J %*% partial %*% W[[i]]
   }
   return(H_2)
 }
 
-calculate_hessian <- function(Y, X, W, alpha, beta, phi, family, eps = 1e-14) {
+calculate_hessian <- function(Y, X, W, alpha, beta, phi, family, eps = 1e-16) {
   n <- length(Y)
   p <- length(beta)
   d <- length(alpha)

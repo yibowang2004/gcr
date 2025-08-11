@@ -18,7 +18,7 @@ gcr(
   max_iter_2 = 100,
   tol = 1e-06,
   criteria = "sum",
-  eps = 1e-14,
+  eps = 1e-16,
   independent = FALSE,
   verbose = FALSE
 )

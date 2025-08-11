@@ -53,7 +53,7 @@ gcr <- function(Y, X, W,
                 alpha_init, beta_init, phi_init, phi.include = TRUE,
                 family, lambda = 1,
                 max_iter_1 = 100, max_iter_2 = 100, tol = 1e-6, criteria = "sum",
-                eps = 1e-14,
+                eps = 1e-16,
                 independent = FALSE, verbose = FALSE) {
 
   n <- length(Y)
