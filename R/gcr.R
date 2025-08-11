@@ -32,7 +32,9 @@
 #' @param tol Convergence tolerance threshold
 #' @param criteria Convergence criteria: "sum" (sum of absolute changes) or
 #'                "avg" (mean absolute change)
+#' @param eps Difference step size in the Hessian approximation
 #' @param independent Logical indicating whether use independent correlation structure
+#' @param verbose Logical indicating whether print convergence information
 #'
 #' @return A list containing the following components:
 #' \describe{
@@ -51,7 +53,8 @@ gcr <- function(Y, X, W,
                 alpha_init, beta_init, phi_init, phi.include = TRUE,
                 family, lambda = 1,
                 max_iter_1 = 100, max_iter_2 = 100, tol = 1e-6, criteria = "sum",
-                independent = FALSE) {
+                eps = 1e-14,
+                independent = FALSE, verbose = FALSE) {
 
   n <- length(Y)
   p <- dim(X[[1]])[2]
@@ -101,6 +104,8 @@ gcr <- function(Y, X, W,
       H_2 <- res_alpha$H
       alpha_11 <- alpha_10 + lambda * solve(H_2) %*% S_2
 
+      if(verbose) print(alpha_11)
+
       step_a <- step_a + 1
 
       # check convergence
@@ -118,6 +123,8 @@ gcr <- function(Y, X, W,
     S_1 <- res_beta$S
     H_1 <- res_beta$H
     beta_1 <- beta_0 + solve(H_1) %*% S_1
+
+    if(verbose) print(beta_1)
 
     step <- step + 1
 
@@ -138,7 +145,7 @@ gcr <- function(Y, X, W,
   H_1 <- calculate_beta(Y, X, W, alpha_1, beta_1, phi_1, family)$H
   if(!independent) {
     H_2 <- calculate_alpha_H(Y, X, W, alpha_1, beta_1, phi_1, family)
-    Hessian <- calculate_hessian(Y, X, W, alpha_1, beta_1, phi_1, family, 1e-14)
+    Hessian <- calculate_hessian(Y, X, W, alpha_1, beta_1, phi_1, family, eps)
     Hessian_solve <- solve(Hessian)
     sigma_alpha <- sqrt(diag(Hessian_solve %*% H_2 %*% Hessian_solve))
     std_alpha <- alpha_1 / sigma_alpha

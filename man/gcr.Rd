@@ -18,7 +18,9 @@ gcr(
   max_iter_2 = 100,
   tol = 1e-06,
   criteria = "sum",
-  independent = FALSE
+  eps = 1e-14,
+  independent = FALSE,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -61,7 +63,11 @@ of responses for a cluster. For cluster \eqn{i}, \code{Y[[i]]} should be a vecto
 \item{criteria}{Convergence criteria: "sum" (sum of absolute changes) or
 "avg" (mean absolute change)}
 
+\item{eps}{Difference step size in the Hessian approximation}
+
 \item{independent}{Logical indicating whether use independent correlation structure}
+
+\item{verbose}{Logical indicating whether print convergence information}
 }
 \value{
 A list containing the following components:
