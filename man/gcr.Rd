@@ -18,7 +18,7 @@ gcr(
   max_iter_2 = 100,
   tol = 1e-06,
   criteria = "sum",
-  eps = 1e-16,
+  eps = .Machine$double.eps,
   independent = FALSE,
   verbose = FALSE
 )
@@ -60,8 +60,8 @@ of responses for a cluster. For cluster \eqn{i}, \code{Y[[i]]} should be a vecto
 
 \item{tol}{Convergence tolerance threshold}
 
-\item{criteria}{Convergence criteria: "sum" (sum of absolute changes) or
-"avg" (mean absolute change)}
+\item{criteria}{Convergence criteria: "sum" (sum absolute changes),
+"avg" (mean absolute change) or "max" (max absolute change)}
 
 \item{eps}{Difference step size in the Hessian approximation}
 

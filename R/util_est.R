@@ -293,7 +293,7 @@ calculate_alpha_H <- function(Y, X, W, alpha, beta, phi, family) {
   return(H_2)
 }
 
-calculate_hessian <- function(Y, X, W, alpha, beta, phi, family, eps = 1e-16) {
+calculate_hessian <- function(Y, X, W, alpha, beta, phi, family, eps = .Machine$double.eps) {
   n <- length(Y)
   p <- length(beta)
   d <- length(alpha)

@@ -30,8 +30,8 @@
 #' @param max_iter_1 Maximum iterations for outer optimization loop
 #' @param max_iter_2 Maximum iterations for inner optimization loop
 #' @param tol Convergence tolerance threshold
-#' @param criteria Convergence criteria: "sum" (sum of absolute changes) or
-#'                "avg" (mean absolute change)
+#' @param criteria Convergence criteria: "sum" (sum absolute changes),
+#'                "avg" (mean absolute change) or "max" (max absolute change)
 #' @param eps Difference step size in the Hessian approximation
 #' @param independent Logical indicating whether use independent correlation structure
 #' @param verbose Logical indicating whether print convergence information
@@ -53,7 +53,7 @@ gcr <- function(Y, X, W,
                 alpha_init, beta_init, phi_init, phi.include = TRUE,
                 family, lambda = 1,
                 max_iter_1 = 100, max_iter_2 = 100, tol = 1e-6, criteria = "sum",
-                eps = 1e-16,
+                eps = .Machine$double.eps,
                 independent = FALSE, verbose = FALSE) {
 
   n <- length(Y)
@@ -139,6 +139,9 @@ gcr <- function(Y, X, W,
       if(!phi.include && mean(abs(c(beta_1 - beta_0, alpha_1 - alpha_0))) <= tol) {
         break
       }
+    }
+    else if(criteria == "max" && max(abs(c(beta_1 - beta_0, alpha_1 - alpha_0, phi_1 - phi_0))) <= tol) {
+      break
     }
   }
 
