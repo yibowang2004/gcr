@@ -50,11 +50,12 @@
 #'
 #' @export
 gcr <- function(Y, X, W,
-                alpha_init, beta_init, phi_init, phi.include = TRUE,
-                family, lambda = 1,
-                max_iter_1 = 100, max_iter_2 = 100, tol = 1e-6, criteria = "sum",
-                eps = .Machine$double.eps,
-                independent = FALSE, verbose = FALSE) {
+                alpha_init, beta_init, phi_init,
+                phi.include = TRUE, family,
+                lambda = 1,
+                max_iter_1 = 100, max_iter_2 = 100,
+                tol = 1e-6, eps = .Machine$double.eps ^ 0.75,
+                criteria = "max", independent = FALSE, verbose = FALSE) {
 
   n <- length(Y)
   p <- dim(X[[1]])[2]
