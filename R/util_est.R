@@ -233,6 +233,69 @@ calculate_alpha_S <- function(alpha, Y, X, W, beta, phi, family) {
   return(S_2)
 }
 
+calculate_alpha_H <- function(Y, X, W, alpha, beta, phi, family) {
+
+  if(family == "Gaussian") {
+    family_type <- gaussian_family()
+  }
+  else if(family == "Poisson") {
+    family_type <- poisson_family()
+  }
+  else if(family == "Binomial") {
+    family_type <- binomial_family()
+  }
+
+  a1_fun <- family_type$a1_fun
+  a2_fun <- family_type$a2_fun
+  a4_fun <- family_type$a4_fun
+  h_fun <- family_type$h_fun
+
+  n <- length(Y)
+  p <- length(beta)
+  d <- length(alpha)
+
+  S_2 <- numeric(d)
+  H_2 <- matrix(0, d, d)
+  for(i in 1:n) {
+    m <- dim(X[[i]])[1]
+    if(m == 1) next
+    E_l <- generate_El(m)
+    E_u <- generate_Eu(m)
+    E_d <- generate_Ed(m)
+
+    theta <- X[[i]] %*% beta
+    mu <- a1_fun(h_fun((theta)))
+    sigma <- phi * a2_fun(h_fun((theta)))
+    A <- diag(as.vector(sigma), nrow = m)
+    A_sqrt_solve <- diag(1 / sqrt(as.vector(sigma)), nrow = m)
+
+    G <- recover_GZT(W[[i]] %*% alpha)
+    eigen_G <- eigen(G, symmetric = TRUE)
+    Q <- eigen_G$vectors
+    lambda <- eigen_G$values
+    Mid <- generate_Mid(lambda)
+    Q_tensor <- kronecker(Q, Q)
+    B <- Q_tensor %*% Mid %*% t(Q_tensor)
+    # calculate partial
+    partial <- E_l %*% (diag(m ^ 2) - B %*% t(E_d) %*% solve(E_d %*% B %*% t(E_d)) %*% E_d) %*% B %*% t(E_l + E_u)
+
+    R <- exp_mat(G)
+    R_solve <- exp_solve_mat(G)
+    R_sqrt_solve <- exp_sqrt_solve_mat(G)
+
+    R_hat <- A_sqrt_solve %*% (Y[[i]] - mu) %*% t(Y[[i]] - mu) %*% A_sqrt_solve
+    eta <- vecl(R_solve %*% R_hat %*% R_solve - R_solve)
+
+    a_d4 <- a4_fun(theta)
+    a_d2 <- a2_fun(theta)
+
+    J <- outer(eta, eta)
+
+    H_2 <- H_2 + t(W[[i]]) %*% t(partial) %*% J %*% partial %*% W[[i]]
+  }
+  return(H_2)
+}
+
 calculate_hessian <- function(Y, X, W, alpha, beta, phi, family, eps = 1e-14) {
   n <- length(Y)
   p <- length(beta)
