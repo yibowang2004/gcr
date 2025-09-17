@@ -21,6 +21,7 @@ gcr(
   eps = .Machine$double.eps^0.5,
   criteria = "max",
   independent = FALSE,
+  get.se = TRUE,
   verbose = FALSE
 )
 }
@@ -69,6 +70,8 @@ of responses for a cluster. For cluster \eqn{i}, \code{Y[[i]]} should be a vecto
 "avg" (mean absolute change) or "max" (max absolute change)}
 
 \item{independent}{Logical indicating whether use independent correlation structure}
+
+\item{get.se}{Logical indicating whether covariance matrices and p-values}
 
 \item{verbose}{Logical indicating whether print convergence information}
 }

@@ -35,6 +35,7 @@
 #'                "avg" (mean absolute change) or "max" (max absolute change)
 #' @param eps Difference step size in the Hessian approximation
 #' @param independent Logical indicating whether use independent correlation structure
+#' @param get.se Logical indicating whether covariance matrices and p-values
 #' @param verbose Logical indicating whether print convergence information
 #'
 #' @return A list containing the following components:
@@ -56,7 +57,8 @@ gcr <- function(Y, X, W,
                 accelerate = FALSE,
                 lambda = 1, max_iter_1 = 100, max_iter_2 = 100,
                 tol = 1e-6, eps = .Machine$double.eps ^ 0.5,
-                criteria = "max", independent = FALSE, verbose = FALSE) {
+                criteria = "max", independent = FALSE, get.se = TRUE,
+                verbose = FALSE) {
 
   n <- length(Y)
   p <- dim(X[[1]])[2]
@@ -150,8 +152,7 @@ gcr <- function(Y, X, W,
     }
   }
 
-  H_1 <- calculate_beta(Y, X, W, alpha_1, beta_1, phi_1, family)$H
-  if(!independent) {
+  if(get.se && !independent) {
     H_2 <- calculate_alpha_H(Y, X, W, alpha_1, beta_1, phi_1, family)
     Hessian <- calculate_hessian(Y, X, W, alpha_1, beta_1, phi_1, family, eps)
     Hessian_solve <- solve(Hessian)
@@ -165,9 +166,16 @@ gcr <- function(Y, X, W,
     pvalue_alpha <- NULL
   }
 
-  sigma_beta <- sqrt(diag(solve(H_1)))
-  std_beta <- beta_1 / sigma_beta
-  pvalue_beta <- ifelse(std_beta > 0, 2 - 2 * pnorm(std_beta), 2 * pnorm(std_beta))
+  if(get.se) {
+    H_1 <- calculate_beta(Y, X, W, alpha_1, beta_1, phi_1, family)$H
+    sigma_beta <- sqrt(diag(solve(H_1)))
+    std_beta <- beta_1 / sigma_beta
+    pvalue_beta <- ifelse(std_beta > 0, 2 - 2 * pnorm(std_beta), 2 * pnorm(std_beta))
+  }
+  else {
+    H_1 <- NULL
+    pvalue_beta <- NULL
+  }
 
   return(list(alpha = alpha_1, pvalue_alpha = pvalue_alpha,
               beta = beta_1, pvalue_beta = pvalue_beta,
