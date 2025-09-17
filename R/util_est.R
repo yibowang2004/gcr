@@ -298,7 +298,7 @@ calculate_alpha_H <- function(Y, X, W, alpha, beta, phi, family) {
   return(H_2)
 }
 
-calculate_hessian <- function(Y, X, W, alpha, beta, phi, eps = .Machine$double.eps ^ 0.5) {
+calculate_hessian <- function(Y, X, W, alpha, beta, phi, family, eps = .Machine$double.eps ^ 0.5) {
   n <- length(Y)
   p <- length(beta)
   d <- length(alpha)
@@ -311,12 +311,12 @@ calculate_hessian <- function(Y, X, W, alpha, beta, phi, eps = .Machine$double.e
     perturbed_points[, j + d] <- alpha - eps * I_d[, j]
   }
 
-  grad_func <- function(theta) calculate_alpha_S(theta, Y = Y, X = X, W = W, beta = beta, phi = phi)
-  all_grads <- apply(perturbed_points, 2, grad_func)
-
   if (d == 1) {
     all_grads <- matrix(all_grads, nrow = 1)
   }
+
+  grad_func <- function(theta) calculate_alpha_S(theta, Y = Y, X = X, W = W, beta = beta, phi = phi, family = family)
+  all_grads <- apply(perturbed_points, 2, grad_func)
 
   grads_pos <- all_grads[, 1:d, drop = FALSE]
   grads_neg <- all_grads[, (d+1):(2*d), drop = FALSE]
