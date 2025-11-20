@@ -31,11 +31,13 @@
 #' @param max_iter_1 Maximum iterations for outer optimization loop
 #' @param max_iter_2 Maximum iterations for inner optimization loop
 #' @param tol Convergence tolerance threshold
-#' @param criteria Convergence criteria: "sum" (sum absolute changes),
-#'                "avg" (mean absolute change) or "max" (max absolute change)
 #' @param eps Difference step size in the Hessian approximation
 #' @param independent Logical indicating whether use independent correlation structure
 #' @param get.se Logical indicating whether covariance matrices and p-values
+#' @param criteria Convergence criteria: "sum" (sum absolute changes),
+#'                "avg" (mean absolute change) or "max" (max absolute change)
+#' @param method.mean Convergence criteria: "both" (both naive and robust),
+#'                "naive" (naive estimator) or "robust" (robust estimator)
 #' @param verbose Logical indicating whether print convergence information
 #'
 #' @return A list containing the following components:
@@ -46,6 +48,7 @@
 #'   \item{pvalue_beta}{p-value for estimated beta}
 #'   \item{phi}{Estimated phi}
 #'   \item{H_1}{Estimated H_1}
+#'   \item{H_mid}{Estimated H_mid}
 #'   \item{H_2}{Estimated H_2}
 #'   \item{Hessian}{Estimated Hessian matrix}
 #' }
@@ -57,7 +60,8 @@ gcr <- function(Y, X, W,
                 accelerate = FALSE,
                 lambda = 1, max_iter_1 = 100, max_iter_2 = 100,
                 tol = 1e-6, eps = .Machine$double.eps ^ 0.5,
-                criteria = "max", independent = FALSE, get.se = TRUE,
+                independent = FALSE, get.se = TRUE,
+                criteria = "max", method.mean = "both",
                 verbose = FALSE) {
 
   n <- length(Y)
@@ -167,18 +171,51 @@ gcr <- function(Y, X, W,
   }
 
   if(get.se) {
-    H_1 <- calculate_beta(Y, X, W, alpha_1, beta_1, phi_1, family)$H
-    sigma_beta <- sqrt(diag(solve(H_1)))
-    std_beta <- beta_1 / sigma_beta
-    pvalue_beta <- ifelse(std_beta > 0, 2 - 2 * pnorm(std_beta), 2 * pnorm(std_beta))
+    if(method.mean == "robust") {
+      H_1 <- calculate_beta_H(Y, X, W, alpha_1, beta_1, phi_1, family)$H
+      H_mid <- calculate_beta_H(Y, X, W, alpha_1, beta_1, phi_1, family)$H_mid
+      H_1_solve <- solve(H_1)
+      sigma_beta <- sqrt(diag(H_1_solve %*% H_mid %*% H_1_solve))
+      std_beta <- beta_1 / sigma_beta
+      pvalue_beta <- ifelse(std_beta > 0, 2 - 2 * pnorm(std_beta), 2 * pnorm(std_beta))
+    }
+    else if(method.mean == "naive") {
+      H_1 <- calculate_beta_H(Y, X, W, alpha_1, beta_1, phi_1, family)$H
+      H_mid <- NULL
+      sigma_beta <- sqrt(diag(solve(H_1)))
+      std_beta <- beta_1 / sigma_beta
+      pvalue_beta <- ifelse(std_beta > 0, 2 - 2 * pnorm(std_beta), 2 * pnorm(std_beta))
+    }
+    else {
+      H_1 <- calculate_beta_H(Y, X, W, alpha_1, beta_1, phi_1, family)$H
+      H_mid <- calculate_beta_H(Y, X, W, alpha_1, beta_1, phi_1, family)$H_mid
+      H_1_solve <- solve(H_1)
+
+      sigma_beta_robust <- sqrt(diag(H_1_solve %*% H_mid %*% H_1_solve))
+      std_beta_robust <- beta_1 / sigma_beta_robust
+      pvalue_beta_robust <- ifelse(std_beta_robust > 0, 2 - 2 * pnorm(std_beta_robust), 2 * pnorm(std_beta_robust))
+
+      sigma_beta_naive <- sqrt(diag(solve(H_1)))
+      std_beta_naive <- beta_1 / sigma_beta_naive
+      pvalue_beta_naive <- ifelse(std_beta_naive > 0, 2 - 2 * pnorm(std_beta_naive), 2 * pnorm(std_beta_naive))
+    }
   }
   else {
     H_1 <- NULL
+    H_mid <- NULL
     pvalue_beta <- NULL
   }
 
-  return(list(alpha = alpha_1, pvalue_alpha = pvalue_alpha,
-              beta = beta_1, pvalue_beta = pvalue_beta,
-              phi = phi_1,
-              H_1 = H_1, H_2 = H_2, Hessian = Hessian))
+  if(method.mean == "both") {
+    return(list(alpha = alpha_1, pvalue_alpha = pvalue_alpha,
+                beta = beta_1, pvalue_beta_robust = pvalue_beta_robust, pvalue_beta_naive = pvalue_beta_naive,
+                phi = phi_1,
+                H_1 = H_1, H_mid = H_mid, H_2 = H_2, Hessian = Hessian))
+  }
+  else {
+    return(list(alpha = alpha_1, pvalue_alpha = pvalue_alpha,
+                beta = beta_1, pvalue_beta = pvalue_beta,
+                phi = phi_1,
+                H_1 = H_1, H_mid = H_mid, H_2 = H_2, Hessian = Hessian))
+  }
 }

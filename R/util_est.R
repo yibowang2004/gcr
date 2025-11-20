@@ -103,6 +103,58 @@ calculate_beta <- function(Y, X, W, alpha, beta, phi, family) {
   return(list(S = S_1, H = H_1))
 }
 
+calculate_beta_H <- function(Y, X, W, alpha, beta, phi, family) {
+
+  if(family == "Gaussian") {
+    family_type <- gaussian_family()
+  }
+  else if(family == "Poisson") {
+    family_type <- poisson_family()
+  }
+  else if(family == "Binomial") {
+    family_type <- binomial_family()
+  }
+
+  a1_fun <- family_type$a1_fun
+  a2_fun <- family_type$a2_fun
+  a4_fun <- family_type$a4_fun
+  h_fun <- family_type$h_fun
+
+  n <- length(Y)
+  p <- length(beta)
+  d <- length(alpha)
+
+  H_1 <- matrix(0, p, p)
+  H_mid <- matrix(0, p, p)
+  for(i in 1:n) {
+    m <- dim(X[[i]])[1]
+
+    theta <- X[[i]] %*% beta
+    mu <- a1_fun(h_fun((theta)))
+    sigma <- phi * a2_fun(h_fun((theta)))
+    A <- diag(as.vector(sigma), nrow = m)
+    A_sqrt_solve <- diag(1 / sqrt(as.vector(sigma)), nrow = m)
+
+    G <- recover_GZT(W[[i]] %*% alpha)
+    R_solve <- exp_solve_mat(G)
+
+    if(family == "Gaussian") {
+      D <- X[[i]]
+    }
+    else if(family == "Poisson") {
+      D <- diag(as.vector(mu), nrow = m) %*% X[[i]]
+    }
+    else if(family == "Binomial") {
+      D <- diag(as.vector(mu * (1 - mu)), nrow = m) %*% X[[i]]
+    }
+
+    V_solve <- A_sqrt_solve %*% R_solve %*% A_sqrt_solve
+    H_mid <- H_mid + t(D) %*% V_solve %*% (Y[[i]] - mu) %*% t(Y[[i]] - mu) %*% V_solve %*% D
+    H_1 <- H_1 + t(D) %*% V_solve %*% D
+  }
+  return(list(H = H_1, H_mid = H_mid))
+}
+
 calculate_alpha <- function(Y, X, W, alpha, beta, phi, accelerate, family) {
 
   if(family == "Gaussian") {

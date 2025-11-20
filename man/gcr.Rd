@@ -19,9 +19,10 @@ gcr(
   max_iter_2 = 100,
   tol = 1e-06,
   eps = .Machine$double.eps^0.5,
-  criteria = "max",
   independent = FALSE,
   get.se = TRUE,
+  criteria = "max",
+  method.mean = "both",
   verbose = FALSE
 )
 }
@@ -66,12 +67,15 @@ of responses for a cluster. For cluster \eqn{i}, \code{Y[[i]]} should be a vecto
 
 \item{eps}{Difference step size in the Hessian approximation}
 
-\item{criteria}{Convergence criteria: "sum" (sum absolute changes),
-"avg" (mean absolute change) or "max" (max absolute change)}
-
 \item{independent}{Logical indicating whether use independent correlation structure}
 
 \item{get.se}{Logical indicating whether covariance matrices and p-values}
+
+\item{criteria}{Convergence criteria: "sum" (sum absolute changes),
+"avg" (mean absolute change) or "max" (max absolute change)}
+
+\item{method.mean}{Convergence criteria: "both" (both naive and robust),
+"naive" (naive estimator) or "robust" (robust estimator)}
 
 \item{verbose}{Logical indicating whether print convergence information}
 }
@@ -84,6 +88,7 @@ A list containing the following components:
   \item{pvalue_beta}{p-value for estimated beta}
   \item{phi}{Estimated phi}
   \item{H_1}{Estimated H_1}
+  \item{H_mid}{Estimated H_mid}
   \item{H_2}{Estimated H_2}
   \item{Hessian}{Estimated Hessian matrix}
 }
