@@ -1,0 +1,79 @@
+---
+title: "Toenail"
+author: "Yibo Wang"
+output: html_document
+---
+
+```{r}
+library(HSAUR3)
+data(toenail)
+```
+```{r}
+library(dplyr)
+toenail$outcome <- as.numeric(as.factor(toenail$outcome)) - 1
+toenail$treatment <- as.numeric(as.factor(toenail$treatment)) - 1
+
+toenail %>%
+  count(patientID) %>%
+  summary()
+
+cluster_list <- toenail %>%
+  group_by(patientID) %>%
+  group_split()
+
+Y <- lapply(cluster_list, function(df) {
+  df %>% select(c(outcome)) %>% as.matrix
+})
+
+X <- lapply(cluster_list, function(df) {
+  df %>% select(-c(patientID, outcome, visit)) %>% as.matrix
+})
+
+X <- lapply(X, function(df) {
+  cbind(1, df, df[, "treatment"] * df[, "time"])
+})
+```
+```{r}
+n <- length(Y)
+p <- dim(X[[1]])[2]
+d <- 3
+
+W_1 <- list()
+for(i in 1:n) {
+  m <- dim(X[[i]])[1]
+  W_1[[i]] <- matrix(0, 0, d)
+  if(m > 1) {
+    for(k in 1:(m - 1)) {
+      for(j in (k + 1):m) {
+        W_1[[i]] <- rbind(W_1[[i]], c(1, ifelse(cluster_list[[i]]$treatment[j] == 1, 1, 0),
+                                  log(abs(cluster_list[[i]]$visit[j] - cluster_list[[i]]$visit[k]))))
+      }
+    }
+  }
+}
+```
+```{r}
+n <- length(Y)
+p <- dim(X[[1]])[2]
+d <- 3
+
+W_2 <- list()
+for(i in 1:n) {
+  m <- dim(X[[i]])[1]
+  W_2[[i]] <- matrix(0, 0, d)
+  if(m > 1) {
+    for(k in 1:(m - 1)) {
+      for(j in (k + 1):m) {
+        W_2[[i]] <- rbind(W_2[[i]], c(1, ifelse(cluster_list[[i]]$treatment[j] == 1, 1, 0),
+                                  log(abs(cluster_list[[i]]$time[j] - cluster_list[[i]]$time[k]))))
+      }
+    }
+  }
+}
+```
+```{r}
+library(gcr)
+res1 <- gcr(Y, X, W_1, rep(0, d), rep(0, p), 1, independent = T, family = "Binomial")
+res2_1 <- gcr(Y, X, W_1, c(0.2, 0, -0.05), res1$beta, 1, family = "Binomial", verbose = T, accelerate = T)
+res2_2 <- gcr(Y, X, W_2, c(0.2, 0, -0.05), res1$beta, 1, family = "Binomial", verbose = T, accelerate = T)
+```

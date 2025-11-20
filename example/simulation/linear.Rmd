@@ -1,0 +1,162 @@
+---
+title: "Gaussian"
+author: "Yibo Wang"
+output: html_document
+---
+
+```{r}
+a1_fun <- function(x) {
+  return(x)
+}
+
+a2_fun <- function(x) {
+  return(rep(1, length(x)))
+}
+
+h_fun <- function(x) {
+  return(x)
+}
+
+log_mat <- function(X) {
+  eigen_X <- eigen(X, symmetric = TRUE)
+  return(eigen_X$vectors %*% diag(log(eigen_X$values), nrow = dim(X)[1]) %*% t(eigen_X$vectors))
+}
+
+exp_mat <- function(X) {
+  eigen_X <- eigen(X, symmetric = TRUE)
+  return(eigen_X$vectors %*% diag(exp(eigen_X$values), nrow = dim(X)[1]) %*% t(eigen_X$vectors))
+}
+
+exp_solve_mat <- function(X) {
+  eigen_X <- eigen(X, symmetric = TRUE)
+  return(eigen_X$vectors %*% diag(1 / exp(eigen_X$values), nrow = dim(X)[1]) %*% t(eigen_X$vectors))
+}
+
+vecl <- function(X) {
+  return(X[lower.tri(X, diag = FALSE)])
+}
+
+lower_to_full <- function(x) {
+  n <- (1 + sqrt(1 + 8 * length(x))) / 2
+  G <- matrix(0, n, n)
+  lower <- lower.tri(G, diag = FALSE)
+  G[lower] <- x
+  G <- t(G)
+  G[lower] <- x
+  G <- t(G)
+  return(G)
+}
+
+GZT <- function(X) {
+  return(vecl(log_mat(X)))
+}
+
+recover_GZT <- function(x, tol = 1e-14, max_iter = 100) {
+  G <- lower_to_full(x)
+  n <- dim(G)[1]
+  
+  x_0 <- numeric(n)
+  diag(G) <- x_0
+  x_1 <- x_0 - log(diag(exp_mat(G)))
+  
+  step <- 0
+  while(sum(abs(x_1 - x_0)) > tol && step < max_iter) {
+    x_0 <- x_1
+    diag(G) <- x_0
+    x_1 <- x_0 - log(diag(exp_mat(G)))
+    step <- step + 1
+  }
+  
+  diag(G) <- x_1
+  return(G)
+}
+```
+
+```{r}
+library(snowfall)
+library(MASS)
+library(mvtnorm)
+library(gcr)
+
+sfInit(parallel = TRUE, cpus = 10)
+
+set.seed(123)
+n <- 100
+p <- 3
+d <- 3
+beta <- c(1, -0.5, 0.5)
+alpha <- c(0.2, -0.2, 0.3)
+phi <- 1
+
+err_mu <- 0
+err_cov <- 0
+error <- numeric(d + p + 1)
+converge <- numeric(d + p)
+times <- 1000
+
+alpha_rec <- matrix(0, nrow = times, ncol = d)
+beta_rec <- matrix(0, nrow = times, ncol = p)
+phi_rec <- numeric(times)
+mu_rec <- numeric(times)
+cov_rec <- numeric(times)
+
+for(ii in 1:times) {
+  m <- rbinom(n, 6, 0.8) + 1
+  X <- list()
+  Y <- list()
+  mu <- list()
+  W <- list()
+  Gamma <- list()
+  R <- list()
+  A <- list()
+  for(i in 1:n) {
+    X[[i]] <- matrix(0, m[i], p)
+    W[[i]] <- matrix(0, 0, d)
+    Gamma[[i]] <- matrix(0, m[i], m[i])
+    
+    #generate X and mu
+    mean <- c(0, 0)
+    sigma <- matrix(c(1, 0.5, 0.5, 1), 2, 2)
+    for(j in 1:m[i]) {
+      X[[i]][j, ] <- c(1, mvrnorm(1, mean, sigma))
+    }
+    mu[[i]] <- Y[[i]] <- a1_fun(h_fun((X[[i]] %*% beta)))
+    
+    # generate W and sigma
+    if(m[i] > 1) {
+      u <- runif(m[i], 0, 1)
+      for(k in 1:(m[i] - 1)) {
+        for(j in (k + 1):m[i]) {
+          W[[i]] <- rbind(W[[i]], c(1, u[j] - u[k], (u[j] - u[k]) ^ 2))
+        }
+      }
+    }
+    R[[i]] <- exp_mat(recover_GZT(W[[i]] %*% alpha))
+    A[[i]] <- phi * diag(m[i])
+    
+    # generate data y
+    e <- mvrnorm(1, rep(0, m[i]), sqrt(A[[i]]) %*% R[[i]] %*% sqrt(A[[i]]))
+    Y[[i]] <- Y[[i]] + e
+  }
+  
+  par_init <- c(alpha, beta, phi)
+  par_est <- gcr(Y, X, W, alpha, beta, phi, family = "Gaussian", method.mean = "naive", accelerate = T)
+  
+  alpha_rec[ii, ] <- alpha_est <- par_est$alpha
+  beta_rec[ii, ] <- beta_est <- par_est$beta
+  phi_rec[ii] <- phi_est <- par_est$phi
+  
+  error <- error + abs(c(alpha_est - alpha, beta_est - beta, phi_est - phi))
+  
+  H1_est <- par_est$H_1
+  CI_beta <- qnorm(0.975) * sqrt(diag(solve(H1_est)))
+  converge[(d + 1):(d + p)] <- converge[(d + 1):(d + p)] + as.numeric(abs(beta_est - beta) <= CI_beta)
+  
+  H2_est <- par_est$H_2
+  Hessian_solve <- solve(par_est$Hessian)
+  CI_alpha <- qnorm(0.975) * sqrt(diag(Hessian_solve %*% H2_est %*% Hessian_solve))
+  converge[1:d] <- converge[1:d] + as.numeric(abs(alpha_est - alpha) <= CI_alpha)
+}
+
+sfStop()
+```

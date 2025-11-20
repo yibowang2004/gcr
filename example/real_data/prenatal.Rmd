@@ -1,0 +1,132 @@
+---
+title: "Prenatal"
+author: "Yibo Wang"
+output: html_document
+---
+
+```{r}
+library(mlmRev)
+data(guPrenat)
+```
+```{r}
+library(dplyr)
+library(tidyr)
+
+df10 <- within(guPrenat, {
+  prenat <- as.numeric(ordered(prenat, levels = c("Traditional", "Modern"))) - 1
+  childAge <- as.numeric(ordered(childAge, levels = c("0-2", "3+"))) - 1
+  motherAge <- as.numeric(factor(motherAge)) - 1
+  birthOrd <- as.numeric(ordered(birthOrd, levels = c("1", "2-3", "4-6", "7+"))) - 1
+  indig <- as.numeric(factor(indig)) - 1
+  momEd <- as.numeric(ordered(momEd, levels = c("None", "Primary", "Secondary+"))) - 1
+  husEd <- as.numeric(ordered(husEd, levels = c("None", "Primary", "Secondary+"))) - 1
+  husEmpl <- as.numeric(factor(husEmpl)) - 1
+  toilet <- as.numeric(ordered(toilet, levels = c("None", "Modern"))) - 1
+  TV <- as.numeric(ordered(TV, levels = c("None", "not daily", "daily"))) - 1
+})
+
+df10 <- df10 %>% drop_na()
+
+df10$ssDist <- (df10$ssDist - min(df10$ssDist)) / (max(df10$ssDist) - min(df10$ssDist))
+
+df10$birthOrd_23 <- as.numeric(df10$birthOrd == 1)
+df10$birthOrd_46 <- as.numeric(df10$birthOrd == 2)
+df10$birthOrd_7 <- as.numeric(df10$birthOrd == 3)
+
+df10$husEd_Primary <- as.numeric(df10$husEd == 1)
+df10$husEd_Secondary <- as.numeric(df10$husEd == 2)
+df10$momEd_Primary <- as.numeric(df10$momEd == 1)
+df10$momEd_Secondary <- as.numeric(df10$momEd == 2)
+
+df10$indig_Spanish <- as.numeric(df10$indig == 2)
+df10$indig_NoSpa <- as.numeric(df10$indig == 1)
+
+df10$husEmpl_Professional <- as.numeric(df10$husEmpl == 1)
+df10$husEmpl_Agri_self <- as.numeric(df10$husEmpl == 2)
+df10$husEmpl_Agri_empl <- as.numeric(df10$husEmpl == 3)
+df10$husEmpl_skilled <- as.numeric(df10$husEmpl == 4)
+
+df10$TV_not_daily <- as.numeric(df10$TV == 1)
+df10$TV_daily <- as.numeric(df10$TV == 2)
+
+cluster_list <- df10 %>%
+  group_by(cluster) %>%
+  group_split()
+
+Y <- lapply(cluster_list, function(df) {
+  df %>% dplyr::select(c(prenat)) %>% as.matrix
+})
+
+X <- lapply(cluster_list, function(df) {
+  df %>% dplyr::select(-c(kid, mom, cluster, prenat, birthOrd, momEd, husEd, indig, husEmpl, TV)) %>% as.matrix
+})
+
+X <- lapply(X, function(df) {
+  cbind(1, df)
+})
+
+Mom <- lapply(cluster_list, function(df) {
+  df %>% dplyr::select(c(mom)) %>% as.matrix
+})
+
+X_del <- lapply(cluster_list, function(df) {
+  df %>% dplyr::select(-c(kid, mom, cluster, prenat, birthOrd, momEd, husEd, indig, husEmpl, TV, toilet, birthOrd_23, birthOrd_46, birthOrd_7, TV_not_daily, TV_daily, husEmpl_Agri_empl, husEmpl_Agri_self, husEmpl_Professional, husEmpl_skilled)) %>% as.matrix
+})
+
+X_del <- lapply(X_del, function(df) {
+  cbind(1, df)
+})
+```
+```{r}
+n <- length(Y)
+p <- dim(X[[1]])[2]
+d <- 2
+
+W <- list()
+for(i in 1:n) {
+  m <- dim(X[[i]])[1]
+  W[[i]] <- matrix(0, 0, d)
+  if(m > 1) {
+    for(k in 1:(m - 1)) {
+      for(j in (k + 1):m) {
+        W[[i]] <- rbind(W[[i]], c(1, ifelse(cluster_list[[i]]$mom[j] == cluster_list[[i]]$mom[k], 1, 0)))
+      }
+    }
+  }
+}
+```
+```{r}
+library(gcr)
+res5_1 <- gcr(Y, X, W, c(0, 0), rep(0, p), 1, independent = TRUE, family = "Binomial")
+res5_2 <- gcr(Y, X, W, c(0.05, 0.85), res5_1$beta, 1, family = "Binomial", verbose = T, accelerate = T)
+```
+```{r}
+n <- length(Y)
+p <- dim(X[[1]])[2]
+d <- 10
+
+W <- list()
+for(i in 1:n) {
+  m <- dim(X[[i]])[1]
+  W[[i]] <- matrix(0, 0, d)
+  if(m > 1) {
+    for(k in 1:(m - 1)) {
+      for(j in (k + 1):m) {
+        W[[i]] <- rbind(W[[i]], c(1, ifelse(cluster_list[[i]]$mom[j] == cluster_list[[i]]$mom[k], 1, 0),
+                                  ifelse(cluster_list[[i]]$indig[j] == cluster_list[[i]]$indig[k] && cluster_list[[i]]$indig[k] == 0, 1, 0),
+                                  ifelse(cluster_list[[i]]$indig[j] == cluster_list[[i]]$indig[k] && cluster_list[[i]]$indig[k] == 1, 1, 0),
+                                  ifelse(cluster_list[[i]]$indig[j] == cluster_list[[i]]$indig[k] && cluster_list[[i]]$indig[k] == 2, 1, 0),
+                                  ifelse(cluster_list[[i]]$husEmpl[j] == cluster_list[[i]]$husEmpl[k] && cluster_list[[i]]$husEmpl[k] == 0, 1, 0),
+                                  ifelse(cluster_list[[i]]$husEmpl[j] == cluster_list[[i]]$husEmpl[k] && cluster_list[[i]]$husEmpl[k] == 1, 1, 0),
+                                  ifelse(cluster_list[[i]]$husEmpl[j] == cluster_list[[i]]$husEmpl[k] && cluster_list[[i]]$husEmpl[k] == 2, 1, 0),
+                                  ifelse(cluster_list[[i]]$husEmpl[j] == cluster_list[[i]]$husEmpl[k] && cluster_list[[i]]$husEmpl[k] == 3, 1, 0),
+                                  ifelse(cluster_list[[i]]$husEmpl[j] == cluster_list[[i]]$husEmpl[k] && cluster_list[[i]]$husEmpl[k] == 4, 1, 0)))
+      }
+    }
+  }
+}
+```
+```{r}
+library(gcr)
+res5_3 <- gcr(Y, X, W, c(res5_2$alpha, -0.01, -0.01, -0.05, 0.3, 0.06, 0.03, 0.01, 0.06), res5_2$beta, 1, family = "Binomial", verbose = T, accelerate = T, lambda = 0.7)
+```
