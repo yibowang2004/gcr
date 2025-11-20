@@ -1,5 +1,5 @@
 ---
-title: "Binary"
+title: "Bernoulli"
 author: "Yibo Wang"
 output: html_document
 ---
@@ -256,3 +256,4 @@ for(ii in 1:times) {
 
 sfStop()
 ```
+
