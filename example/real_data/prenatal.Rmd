@@ -8,6 +8,7 @@ output: html_document
 library(mlmRev)
 data(guPrenat)
 ```
+
 ```{r}
 library(dplyr)
 library(tidyr)
@@ -77,6 +78,7 @@ X_del <- lapply(X_del, function(df) {
   cbind(1, df)
 })
 ```
+
 ```{r}
 n <- length(Y)
 p <- dim(X[[1]])[2]
@@ -95,11 +97,13 @@ for(i in 1:n) {
   }
 }
 ```
+
 ```{r}
 library(gcr)
 res5_1 <- gcr(Y, X, W, c(0, 0), rep(0, p), 1, independent = TRUE, family = "Binomial")
 res5_2 <- gcr(Y, X, W, c(0.05, 0.85), res5_1$beta, 1, family = "Binomial", verbose = T, accelerate = T)
 ```
+
 ```{r}
 n <- length(Y)
 p <- dim(X[[1]])[2]
@@ -121,7 +125,9 @@ for(i in 1:n) {
   }
 }
 ```
+
 ```{r}
 library(gcr)
 res5_3 <- gcr(Y, X, W, c(res5_2$alpha, -0.02, -0.015, -0.06), res5_2$beta, 1, family = "Binomial", verbose = T, accelerate = T, lambda = 0.8)
+
 ```
