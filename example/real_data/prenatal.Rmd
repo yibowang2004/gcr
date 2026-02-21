@@ -103,7 +103,7 @@ res5_2 <- gcr(Y, X, W, c(0.05, 0.85), res5_1$beta, 1, family = "Binomial", verbo
 ```{r}
 n <- length(Y)
 p <- dim(X[[1]])[2]
-d <- 10
+d <- 5
 
 W <- list()
 for(i in 1:n) {
@@ -115,12 +115,7 @@ for(i in 1:n) {
         W[[i]] <- rbind(W[[i]], c(1, ifelse(cluster_list[[i]]$mom[j] == cluster_list[[i]]$mom[k], 1, 0),
                                   ifelse(cluster_list[[i]]$indig[j] == cluster_list[[i]]$indig[k] && cluster_list[[i]]$indig[k] == 0, 1, 0),
                                   ifelse(cluster_list[[i]]$indig[j] == cluster_list[[i]]$indig[k] && cluster_list[[i]]$indig[k] == 1, 1, 0),
-                                  ifelse(cluster_list[[i]]$indig[j] == cluster_list[[i]]$indig[k] && cluster_list[[i]]$indig[k] == 2, 1, 0),
-                                  ifelse(cluster_list[[i]]$husEmpl[j] == cluster_list[[i]]$husEmpl[k] && cluster_list[[i]]$husEmpl[k] == 0, 1, 0),
-                                  ifelse(cluster_list[[i]]$husEmpl[j] == cluster_list[[i]]$husEmpl[k] && cluster_list[[i]]$husEmpl[k] == 1, 1, 0),
-                                  ifelse(cluster_list[[i]]$husEmpl[j] == cluster_list[[i]]$husEmpl[k] && cluster_list[[i]]$husEmpl[k] == 2, 1, 0),
-                                  ifelse(cluster_list[[i]]$husEmpl[j] == cluster_list[[i]]$husEmpl[k] && cluster_list[[i]]$husEmpl[k] == 3, 1, 0),
-                                  ifelse(cluster_list[[i]]$husEmpl[j] == cluster_list[[i]]$husEmpl[k] && cluster_list[[i]]$husEmpl[k] == 4, 1, 0)))
+                                  ifelse(cluster_list[[i]]$indig[j] == cluster_list[[i]]$indig[k] && cluster_list[[i]]$indig[k] == 2, 1, 0)))
       }
     }
   }
@@ -128,5 +123,5 @@ for(i in 1:n) {
 ```
 ```{r}
 library(gcr)
-res5_3 <- gcr(Y, X, W, c(res5_2$alpha, -0.01, -0.01, -0.05, 0.3, 0.06, 0.03, 0.01, 0.06), res5_2$beta, 1, family = "Binomial", verbose = T, accelerate = T, lambda = 0.7)
+res5_3 <- gcr(Y, X, W, c(res5_2$alpha, -0.02, -0.015, -0.06), res5_2$beta, 1, family = "Binomial", verbose = T, accelerate = T, lambda = 0.8)
 ```
