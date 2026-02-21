@@ -155,7 +155,7 @@ library(gcr)
 
 set.seed(123)
 
-n <- 100
+n <- 200
 p <- 3
 d <- 3
 beta <- c(1, -0.5, 0.5)
@@ -235,4 +235,5 @@ for(ii in 1:times) {
   beta_CI_rec[ii, ] <- CI_beta <- qnorm(0.975) * sqrt(diag(cov_beta))
   coverage[(d + 1):(d + p)] <- coverage[(d + 1):(d + p)] + as.numeric(abs(beta_est - beta) <= CI_beta)
 }
+
 ```
