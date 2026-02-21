@@ -22,7 +22,6 @@ gcr(
   independent = FALSE,
   get.se = TRUE,
   criteria = "max",
-  method.mean = "both",
   verbose = FALSE
 )
 }
@@ -51,7 +50,7 @@ of responses for a cluster. For cluster \eqn{i}, \code{Y[[i]]} should be a vecto
 
 \item{phi_init}{Initial value for phi}
 
-\item{phi.include}{Logical indicating whether phi is known}
+\item{phi.include}{Logical indicating whether phi is to be estimated}
 
 \item{family}{Response distribution family: "Gaussian", "Poisson", or "Binomial"}
 
@@ -73,9 +72,6 @@ of responses for a cluster. For cluster \eqn{i}, \code{Y[[i]]} should be a vecto
 
 \item{criteria}{Convergence criteria: "sum" (sum absolute changes),
 "avg" (mean absolute change) or "max" (max absolute change)}
-
-\item{method.mean}{Convergence criteria: "both" (both naive and robust),
-"naive" (naive estimator) or "robust" (robust estimator)}
 
 \item{verbose}{Logical indicating whether print convergence information}
 }

@@ -24,7 +24,7 @@
 #' @param alpha_init Initial value for alpha
 #' @param beta_init Initial value for beta
 #' @param phi_init Initial value for phi
-#' @param phi.include Logical indicating whether phi is known
+#' @param phi.include Logical indicating whether phi is to be estimated
 #' @param family Response distribution family: "Gaussian", "Poisson", or "Binomial"
 #' @param accelerate Logical indicating whether use the accelerated algorithm
 #' @param lambda Step size
@@ -36,8 +36,6 @@
 #' @param get.se Logical indicating whether covariance matrices and p-values
 #' @param criteria Convergence criteria: "sum" (sum absolute changes),
 #'                "avg" (mean absolute change) or "max" (max absolute change)
-#' @param method.mean Convergence criteria: "both" (both naive and robust),
-#'                "naive" (naive estimator) or "robust" (robust estimator)
 #' @param verbose Logical indicating whether print convergence information
 #'
 #' @return A list containing the following components:
@@ -61,7 +59,7 @@ gcr <- function(Y, X, W,
                 lambda = 1, max_iter_1 = 100, max_iter_2 = 100,
                 tol = 1e-6, eps = .Machine$double.eps ^ 0.5,
                 independent = FALSE, get.se = TRUE,
-                criteria = "max", method.mean = "both",
+                criteria = "max",
                 verbose = FALSE) {
 
   n <- length(Y)
@@ -156,66 +154,39 @@ gcr <- function(Y, X, W,
     }
   }
 
+  pvalue_alpha <- NULL
+  pvalue_beta <- NULL
+  pvalue_phi <- NULL
+  cov_alpha <- NULL
+  cov_beta <- NULL
+  var_phi <- NULL
+  cov <- NULL
+
   if(get.se && !independent) {
-    H_2 <- calculate_alpha_H(Y, X, W, alpha_1, beta_1, phi_1, family)
-    Hessian <- calculate_hessian(Y, X, W, alpha_1, beta_1, phi_1, family, eps)
-    Hessian_solve <- solve(Hessian)
-    sigma_alpha <- sqrt(diag(Hessian_solve %*% H_2 %*% Hessian_solve))
+    sand <- stacked_sandwich(Y, X, W, alpha_1, beta_1, phi_1, phi_known = !phi.include, family = family)
+
+    cov_alpha <- sand$cov_alpha
+    sigma_alpha <- sqrt(diag(cov_alpha))
     std_alpha <- alpha_1 / sigma_alpha
     pvalue_alpha <- ifelse(std_alpha > 0, 2 - 2 * pnorm(std_alpha), 2 * pnorm(std_alpha))
-  }
-  else {
-    H_2 <- NULL
-    Hessian <- NULL
-    pvalue_alpha <- NULL
-  }
 
-  if(get.se) {
-    if(method.mean == "robust") {
-      H_1 <- calculate_beta_H(Y, X, W, alpha_1, beta_1, phi_1, family)$H
-      H_mid <- calculate_beta_H(Y, X, W, alpha_1, beta_1, phi_1, family)$H_mid
-      H_1_solve <- solve(H_1)
-      sigma_beta <- sqrt(diag(H_1_solve %*% H_mid %*% H_1_solve))
-      std_beta <- beta_1 / sigma_beta
-      pvalue_beta <- ifelse(std_beta > 0, 2 - 2 * pnorm(std_beta), 2 * pnorm(std_beta))
+    cov_beta <- sand$cov_beta
+    sigma_beta <- sqrt(diag(cov_beta))
+    std_beta <- beta_1 / sigma_beta
+    pvalue_beta <- ifelse(std_beta > 0, 2 - 2 * pnorm(std_beta), 2 * pnorm(std_beta))
+
+    if(phi.include) {
+      var_phi <- sand$var_phi
+      sigma_phi <- sqrt(var_phi)
+      std_phi <- phi_1 / sigma_phi
+      pvalue_phi <- 1 - 1 * pnorm(std_phi)
     }
-    else if(method.mean == "naive") {
-      H_1 <- calculate_beta_H(Y, X, W, alpha_1, beta_1, phi_1, family)$H
-      H_mid <- NULL
-      sigma_beta <- sqrt(diag(solve(H_1)))
-      std_beta <- beta_1 / sigma_beta
-      pvalue_beta <- ifelse(std_beta > 0, 2 - 2 * pnorm(std_beta), 2 * pnorm(std_beta))
-    }
-    else {
-      H_1 <- calculate_beta_H(Y, X, W, alpha_1, beta_1, phi_1, family)$H
-      H_mid <- calculate_beta_H(Y, X, W, alpha_1, beta_1, phi_1, family)$H_mid
-      H_1_solve <- solve(H_1)
 
-      sigma_beta_robust <- sqrt(diag(H_1_solve %*% H_mid %*% H_1_solve))
-      std_beta_robust <- beta_1 / sigma_beta_robust
-      pvalue_beta_robust <- ifelse(std_beta_robust > 0, 2 - 2 * pnorm(std_beta_robust), 2 * pnorm(std_beta_robust))
-
-      sigma_beta_naive <- sqrt(diag(solve(H_1)))
-      std_beta_naive <- beta_1 / sigma_beta_naive
-      pvalue_beta_naive <- ifelse(std_beta_naive > 0, 2 - 2 * pnorm(std_beta_naive), 2 * pnorm(std_beta_naive))
-    }
-  }
-  else {
-    H_1 <- NULL
-    H_mid <- NULL
-    pvalue_beta <- NULL
+    cov <- sand$Sigma_hat
   }
 
-  if(method.mean == "both") {
-    return(list(alpha = alpha_1, pvalue_alpha = pvalue_alpha,
-                beta = beta_1, pvalue_beta_robust = pvalue_beta_robust, pvalue_beta_naive = pvalue_beta_naive,
-                phi = phi_1,
-                H_1 = H_1, H_mid = H_mid, H_2 = H_2, Hessian = Hessian))
-  }
-  else {
-    return(list(alpha = alpha_1, pvalue_alpha = pvalue_alpha,
-                beta = beta_1, pvalue_beta = pvalue_beta,
-                phi = phi_1,
-                H_1 = H_1, H_mid = H_mid, H_2 = H_2, Hessian = Hessian))
-  }
+  return(list(alpha = alpha_1, pvalue_alpha = pvalue_alpha,
+              beta = beta_1, pvalue_beta = pvalue_beta,
+              phi = phi_1, pvalue_phi = pvalue_phi,
+              cov_alpha = cov_alpha, cov_beta = cov_beta, var_phi = var_phi, cov = cov))
 }
