@@ -1,0 +1,61 @@
+---
+title: "preg_code"
+author: "PB22051070 王一博"
+date: "2025-07-02"
+output: html_document
+---
+
+```{r}
+library(lme4)
+data(grouseticks)
+```
+
+```{R}
+grouseticks$BROOD <- as.numeric(grouseticks$BROOD)
+
+grouseticks$YEAR_1 <- as.numeric(as.numeric(grouseticks$YEAR) == 2)
+grouseticks$YEAR_2 <- as.numeric(as.numeric(grouseticks$YEAR) == 3)
+
+library(dplyr)
+
+cluster_list <- grouseticks %>%
+  group_by(LOCATION) %>%
+  group_split()
+
+Y <- lapply(cluster_list, function(df) {
+  df %>% dplyr::select(c(TICKS)) %>% as.matrix
+})
+
+X <- lapply(cluster_list, function(df) {
+  df %>% dplyr::select(-c(LOCATION, TICKS, INDEX, BROOD, HEIGHT, YEAR)) %>% as.matrix
+})
+
+X <- lapply(X, function(df) {
+  cbind(1, df)
+})
+```
+
+```{r}
+n <- length(Y)
+p <- dim(X[[1]])[2]
+d <- 2
+
+W <- list()
+for(i in 1:n) {
+  m <- dim(X[[i]])[1]
+  W[[i]] <- matrix(0, 0, d)
+  if(m > 1) {
+    for(k in 1:(m - 1)) {
+      for(j in (k + 1):m) {
+        W[[i]] <- rbind(W[[i]], c(1, ifelse(cluster_list[[i]]$BROOD[j] == cluster_list[[i]]$BROOD[k], 1, 0)))
+      }
+    }
+  }
+}
+```
+
+```{R}
+library(gcr)
+res1 <- gcr(Y, X, W, c(0, 0), rep(0, p), 1, family = "Poisson", independent = TRUE)
+res2 <- gcr(Y, X, W, c(0, 0.25), res1$beta, 1, family = "Poisson", lambda = 0.05, verbose = T, accelerate = T)
+```
