@@ -3,6 +3,7 @@ title: "Bernoulli"
 author: "Yibo Wang"
 output: html_document
 ---
+
 ```{r}
 a1_fun <- function(x) {
   return(exp(x) / (1 + exp(x)))
@@ -19,26 +20,6 @@ a4_fun <- function(x) {
 
 h_fun <- function(x) {
   return(x)
-}
-
-log_mat <- function(X) {
-  eigen_X <- eigen(X, symmetric = TRUE)
-  return(eigen_X$vectors %*% diag(log(eigen_X$values), nrow = dim(X)[1]) %*% t(eigen_X$vectors))
-}
-
-exp_mat <- function(X) {
-  eigen_X <- eigen(X, symmetric = TRUE)
-  return(eigen_X$vectors %*% diag(exp(eigen_X$values), nrow = dim(X)[1]) %*% t(eigen_X$vectors))
-}
-
-exp_solve_mat <- function(X) {
-  eigen_X <- eigen(X, symmetric = TRUE)
-  return(eigen_X$vectors %*% diag(1 / exp(eigen_X$values), nrow = dim(X)[1]) %*% t(eigen_X$vectors))
-}
-
-exp_sqrt_solve_mat <- function(X) {
-  eigen_X <- eigen(X, symmetric = TRUE)
-  return(eigen_X$vectors %*% diag(1 / sqrt(exp(eigen_X$values)), nrow = dim(X)[1]) %*% t(eigen_X$vectors))
 }
 
 vecl <- function(X) {
@@ -79,6 +60,51 @@ recover_GZT <- function(x, tol = 1e-14, max_iter = 100) {
   diag(G) <- x_1
   return(G)
 }
+```
+
+```{r}
+library(Rcpp)
+library(RcppEigen)
+sourceCpp(code = '
+  // [[Rcpp::depends(RcppEigen)]]
+  #include <RcppEigen.h>
+  using namespace Rcpp;
+  using Eigen::MatrixXd;
+  using Eigen::VectorXd;
+  using Eigen::SelfAdjointEigenSolver;
+  
+  // [[Rcpp::export]]
+  Eigen::MatrixXd log_mat(const Eigen::MatrixXd& R) {
+    Eigen::SelfAdjointEigenSolver<MatrixXd> solver(R);
+    VectorXd eigvals = solver.eigenvalues();
+    VectorXd log_eigvals = eigvals.array().log();
+    return solver.eigenvectors() * log_eigvals.asDiagonal() * solver.eigenvectors().transpose();
+  }
+  
+  // [[Rcpp::export]]
+  Eigen::MatrixXd exp_mat(const Eigen::MatrixXd& R) {
+    Eigen::SelfAdjointEigenSolver<MatrixXd> solver(R);
+    VectorXd eigvals = solver.eigenvalues();
+    VectorXd exp_eigvals = eigvals.array().exp();
+    return solver.eigenvectors() * exp_eigvals.asDiagonal() * solver.eigenvectors().transpose();
+  }
+  
+  // [[Rcpp::export]]
+  Eigen::MatrixXd exp_solve_mat(const Eigen::MatrixXd& R) {
+    Eigen::SelfAdjointEigenSolver<MatrixXd> solver(R);
+    VectorXd eigvals = solver.eigenvalues();
+    VectorXd exp_solve_eigvals = 1 / eigvals.array().exp();
+    return solver.eigenvectors() * exp_solve_eigvals.asDiagonal() * solver.eigenvectors().transpose();
+  }
+  
+  // [[Rcpp::export]]
+  Eigen::MatrixXd exp_sqrt_solve_mat(const Eigen::MatrixXd& R) {
+    Eigen::SelfAdjointEigenSolver<MatrixXd> solver(R);
+    VectorXd eigvals = solver.eigenvalues();
+    VectorXd exp_sqrt_solve_eigvals = 1 / eigvals.array().exp().sqrt();
+    return solver.eigenvectors() * exp_sqrt_solve_eigvals.asDiagonal() * solver.eigenvectors().transpose();
+  }
+')
 ```
 
 ```{r}
@@ -164,33 +190,29 @@ generate_mv_binary <- function(p, delta, n_samples = 1) {
 ```
 
 ```{r}
-library(snowfall)
 library(MASS)
 library(mvtnorm)
 library(gcr)
 
-sfInit(parallel = TRUE, cpus = 10)
-
 set.seed(123)
 
-n <- 100
+n <- 200
 p <- 3
 d <- 2
 beta <- c(1, -0.5, 0.5)
 alpha <- c(0.05, 0.15)
 phi <- 1
 
-err_mu <- 0
-err_cov <- 0
 error <- numeric(d + p + 1)
-converge <- numeric(d + p)
+coverage <- numeric(d + p)
 times <- 1000
 
 alpha_rec <- matrix(0, nrow = times, ncol = d)
+alpha_CI_rec <- matrix(0, nrow = times, ncol = d)
 beta_rec <- matrix(0, nrow = times, ncol = p)
+beta_CI_rec <- matrix(0, nrow = times, ncol = p)
 phi_rec <- numeric(times)
-mu_rec <- numeric(times)
-cov_rec <- numeric(times)
+phi_CI_rec <- numeric(times)
 
 for(ii in 1:times) {
   m <- rbinom(n, 6, 0.8) + 1
@@ -236,24 +258,21 @@ for(ii in 1:times) {
     if(i > n) break
   }
 
-  par_est <- gcr(Y, X, W, alpha, beta, 1, family = "Binomial", method.mean = "naive", accelerate = T)
+  par_est <- gcr(Y, X, W, alpha, beta, 1, family = "Binomial")
   
   alpha_rec[ii, ] <- alpha_est <- par_est$alpha
   beta_rec[ii, ] <- beta_est <- par_est$beta
   phi_rec[ii] <- phi_est <- par_est$phi
-
+  
   error <- error + abs(c(alpha_est - alpha, beta_est - beta, phi_est - phi))
 
-  H1_est <- par_est$H_1
-  CI_beta <- qnorm(0.975) * sqrt(diag(solve(H1_est)))
-  converge[(d + 1):(d + p)] <- converge[(d + 1):(d + p)] + as.numeric(abs(beta_est - beta) <= CI_beta)
-
-  H2_est <- par_est$H_2
-  Hessian_solve <- solve(par_est$Hessian)
-  CI_alpha <- qnorm(0.975) * sqrt(diag(Hessian_solve %*% H2_est %*% Hessian_solve))
-  converge[1:d] <- converge[1:d] + as.numeric(abs(alpha_est - alpha) <= CI_alpha)
+  cov_alpha <- par_est$cov_alpha
+  alpha_CI_rec[ii, ] <- CI_alpha <- qnorm(0.975) * sqrt(diag(cov_alpha))
+  coverage[1:d] <- coverage[1:d] + as.numeric(abs(alpha_est - alpha) <= CI_alpha)
+  
+  cov_beta <- par_est$cov_beta
+  beta_CI_rec[ii, ] <- CI_beta <- qnorm(0.975) * sqrt(diag(cov_beta))
+  coverage[(d + 1):(d + p)] <- coverage[(d + 1):(d + p)] + as.numeric(abs(beta_est - beta) <= CI_beta)
 }
-
-sfStop()
 ```
 
